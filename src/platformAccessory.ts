@@ -22,6 +22,8 @@ export class HeliosVentilationPlatformAccessory {
   ) {
 
     // set accessory information
+    this.platform.log.info('register accessory', this.accessory.context.info);
+
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Helios')
       .setCharacteristic(this.platform.Characteristic.Model, this.accessory.context.info.deviceModel)
@@ -78,7 +80,10 @@ export class HeliosVentilationPlatformAccessory {
   }
 
   private isActive(info: VentilationInfo) {
-    return info.deviceState === VentilationStatus.Home || info.deviceState === VentilationStatus.Boost;
+    if(info.deviceState === VentilationStatus.Home || info.deviceState === VentilationStatus.Boost) {
+      return this.platform.Characteristic.Active.ACTIVE;
+    }
+    return this.platform.Characteristic.Active.INACTIVE;
   }
 
   private determineRotationSpeed(info: VentilationInfo) {
