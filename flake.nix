@@ -24,7 +24,7 @@
           };
           
           # project specific environment variables or commands/aliases
-          env.PROJECT_NAME = "Homebridge iBricks";
+          env.PROJECT_NAME = "Homebridge Helios Kwl";
           scripts.hello.exec = ''
             cat <<EOF
             ## Welcome to a devenv setup for '$PROJECT_NAME'
