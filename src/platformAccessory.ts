@@ -57,11 +57,14 @@ export class HeliosVentilationPlatformAccessory {
       const info = message as VentilationInfo;
       this.platform.log.debug('device info:', info);
       return this.isActive(info);
+    }, error => {
+      this.platform.log.error('an error occured', error);
+      return this.platform.Characteristic.Active.INACTIVE;
     });
   }
 
   setActive(value) {
-    this.platform.log.debug('setActive' + value);
+    this.platform.log.debug('setActive: ' + value);
     this.platform.hv.send(value ? VentilationCommand.SetHome: VentilationCommand.SetAway);
   }
 
@@ -71,6 +74,9 @@ export class HeliosVentilationPlatformAccessory {
       const info = message as VentilationInfo;
       this.platform.log.debug('device info:', info);
       return this.determineRotationSpeed(info);
+    }, error => {
+      this.platform.log.error('an error occured', error);
+      return 0;
     });
   }
 

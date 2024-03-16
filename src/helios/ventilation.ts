@@ -129,6 +129,7 @@ export class HeliosVentilation {
         data[0] = 3, data[1] = 246, data[2] = 0, data[3] = 249;
 
     }
+    this.log.debug('sending data of length %d', data.byteLength);
     this.ws.send(data.buffer);
     return new Promise<VentilationMessage>((resolve, reject) => {
       this.promiseResolve = resolve;
