@@ -1,6 +1,5 @@
 {
-  "private": true,
-  "displayName": "Homebridge iBricks",
+  "displayName": "Homebridge Helios KWL Plugin",
   "name": "@ubreu/homebridge-helios-kwl",
   "version": "0.0.0",
   "description": "Control Helios KWL from Homebridge.",
