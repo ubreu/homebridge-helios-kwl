@@ -1,5 +1,5 @@
 import { LogLevel, Logger } from 'homebridge';
-import { HeliosVentilation, VentilationAck, VentilationCommand, VentilationInfo, VentilationStatus } from './ventilation';
+import { HeliosVentilation, VentilationAck, VentilationCommand, VentilationInfo, VentilationMessage, VentilationStatus } from './ventilation';
 
 import assert from 'assert';
 
@@ -52,5 +52,21 @@ describe('Websocket Tests', () => {
 
     const info = await ws.send(VentilationCommand.GetStatus) as VentilationInfo;
     assert.equal(info.deviceState, VentilationStatus.Boost);
+  });
+
+  it('correctly handles parallel status requests', async () => {
+    const ws = new HeliosVentilation(heliosHost, heliosPort, logger);
+    const ack = await ws.open() as VentilationAck;
+    assert.equal(ack.message, 'OPENED');
+
+    const promises:Promise<VentilationMessage>[] = [];
+    promises.push(ws.send(VentilationCommand.GetStatus));
+    promises.push(ws.send(VentilationCommand.GetStatus));
+    const finalPromise = ws.send(VentilationCommand.GetStatus);
+    promises.push(finalPromise);
+    const info = await finalPromise as VentilationInfo;
+    assert.equal(info.deviceModel, 'KWL 300 W L');
+    assert.equal(info.deviceType, '40050-002');
+    await Promise.allSettled(promises);
   });
 });

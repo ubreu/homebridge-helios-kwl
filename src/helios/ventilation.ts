@@ -1,6 +1,9 @@
 import { WebSocket } from 'ws';
 import { Logger } from 'homebridge';
 import { DeviceMap } from './deviceMap';
+import {Mutex, withTimeout, E_CANCELED} from 'async-mutex';
+import { error } from 'console';
+
 
 export enum VentilationCommand {
     GetStatus, SetHome, SetAway, SetBoost
@@ -36,6 +39,8 @@ export class HeliosVentilation {
 
   private promiseReject!: (reason?: string) => void;
 
+  private mutex = withTimeout(new Mutex(), 5000);
+
   constructor(heliosHost: string, heliosPort: number, log: Logger) {
     this.log = log;
     this.log.info('Connecting to: ws://%s', heliosHost, heliosPort);
@@ -57,6 +62,8 @@ export class HeliosVentilation {
     });
     this.ws.on('message', (data: ArrayBuffer) => {
       this.log.debug('received data of length %d', data.byteLength);
+
+      this.mutex.release();
 
       if (data.byteLength === 1410) {
         const deviceModel = DeviceMap.device_model_data[data[17 * 2 + 1]] || 'unknown';
@@ -129,12 +136,21 @@ export class HeliosVentilation {
         data[0] = 3, data[1] = 246, data[2] = 0, data[3] = 249;
 
     }
-    this.log.debug('sending data of length %d', data.byteLength);
-    this.ws.send(data.buffer);
-    return new Promise<VentilationMessage>((resolve, reject) => {
-      this.promiseResolve = resolve;
-      this.promiseReject = reject;
-    });
+    this.log.debug('ready to send data of length %d', data.byteLength);
+    return this.mutex
+      .acquire()
+      .then(() => {
+        this.log.debug('acquired mutex, sending data of length %d', data.byteLength);
+        this.ws.send(data.buffer);
+        return new Promise<VentilationMessage>((resolve, reject) => {
+          this.promiseResolve = resolve;
+          this.promiseReject = reject;
+        });
+      })
+      .catch(e => {
+        this.log.error('mutex handling error', e);
+        return { message: 'mutex error' };
+      });
   }
 
   private resolve(message: VentilationMessage) {
