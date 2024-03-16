@@ -31,6 +31,10 @@ export type VentilationMessage = VentilationInfo | VentilationAck;
 */
 export class HeliosVentilation {
 
+  private heliosHost: string;
+
+  private heliosPort: number;
+
   private ws: WebSocket;
 
   private log: Logger;
@@ -42,9 +46,11 @@ export class HeliosVentilation {
   private mutex = withTimeout(new Mutex(), 5000);
 
   constructor(heliosHost: string, heliosPort: number, log: Logger) {
+    this.heliosHost = heliosHost;
+    this.heliosPort = heliosPort;
     this.log = log;
-    this.log.info('Connecting to: ws://%s', heliosHost, heliosPort);
-    this.ws = new WebSocket('ws://' + heliosHost + ':' + heliosPort + '/');
+
+    this.ws = this.connect();
 
     this.ws.on('close', (data) => {
       this.log.info('connection closed with %s', data);
@@ -62,8 +68,6 @@ export class HeliosVentilation {
     });
     this.ws.on('message', (data: ArrayBuffer) => {
       this.log.debug('received data of length %d', data.byteLength);
-
-      this.mutex.release();
 
       if (data.byteLength === 1410) {
         const deviceModel = DeviceMap.device_model_data[data[17 * 2 + 1]] || 'unknown';
@@ -141,7 +145,16 @@ export class HeliosVentilation {
       .acquire()
       .then(() => {
         this.log.debug('acquired mutex, sending data of length %d', data.byteLength);
-        this.ws.send(data.buffer);
+        if (this.ws.readyState === WebSocket.CLOSED) {
+          this.log.info('websocket closed, reconnecting');
+          this.ws = this.connect();
+          const p= this.open().then(_ => {
+            this.log.info('websocket reconnect successful, sending data');
+            this.ws.send(data.buffer);
+          });
+        } else {
+          this.ws.send(data.buffer);
+        }
         return new Promise<VentilationMessage>((resolve, reject) => {
           this.promiseResolve = resolve;
           this.promiseReject = reject;
@@ -149,20 +162,29 @@ export class HeliosVentilation {
       })
       .catch(e => {
         this.log.error('mutex handling error', e);
+        this.mutex.release();
         return { message: 'mutex error' };
       });
+  }
+
+  private connect(): WebSocket {
+    this.log.info('Connecting to: ws://%s', this.heliosHost, this.heliosPort);
+    const ws = new WebSocket('ws://' + this.heliosHost + ':' + this.heliosPort + '/');
+    return ws;
   }
 
   private resolve(message: VentilationMessage) {
     if (this.promiseResolve !== undefined) {
       this.promiseResolve(message);
     }
+    this.mutex.release();
   }
 
   private reject(message: string) {
     if (this.promiseReject !== undefined) {
       this.promiseReject(message);
     }
+    this.mutex.release();
   }
 }
 
