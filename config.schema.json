@@ -6,13 +6,13 @@
     "type": "object",
     "properties": {
       "heliosHost": {
-        "title": "Name",
+        "title": "Helios Host",
         "type": "string",
         "required": true,
         "default": "127.0.0.1"
       },
       "heliosPort": {
-        "title": "Name",
+        "title": "Helios Port",
         "type": "number",
         "required": true,
         "default": "127.0.0.1"
