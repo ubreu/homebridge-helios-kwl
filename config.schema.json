@@ -5,11 +5,17 @@
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
+      "heliosHost": {
         "title": "Name",
         "type": "string",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "default": "127.0.0.1"
+      },
+      "heliosPort": {
+        "title": "Name",
+        "type": "number",
+        "required": true,
+        "default": "127.0.0.1"
       }
     }
   }
