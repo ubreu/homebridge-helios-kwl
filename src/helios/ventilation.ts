@@ -61,7 +61,7 @@ export class HeliosVentilation {
       if (data.byteLength === 1410) {
         const deviceModel = DeviceMap.device_model_data[data[17 * 2 + 1]] || 'unknown';
         const deviceType = DeviceMap.device_type_data[data[16 * 2 + 1]] || 'unknown';
-        const serialNumber = data[14 * 2] * 16777216 + data[14 * 2 + 1] * 65536 + data[15 * 2] * 256 + data[15 * 2 + 1];
+        const serialNumber = data[14 * 2] * 16777216 + data[14 * 2 + 1] * 65536 + data[15 * 2] * 256 + data[15 * 2 + 1] + '';
 
         // Based on https://github.com/sanchosk/helios2mqtt
         // the status is calculated:
