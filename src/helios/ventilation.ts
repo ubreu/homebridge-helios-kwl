@@ -51,14 +51,17 @@ export class HeliosVentilation {
     // determined by debugging bundle.js, line 3853 ('Message is received...')
     switch(command) {
       case VentilationCommand.SetHome:
+        this.log.info('set ventilation mode to home/default');
         data = new Uint16Array(9);
         data[0] = 8, data[1] = 249, data[2] = 4609, data[3] = 0, data[4] = 4612, data[5] = 0, data[6] = 4613, data[7] = 0, data[8] = 14091;
         break;
       case VentilationCommand.SetAway:
+        this.log.info('set ventilation mode to away');
         data = new Uint16Array(9);
         data[0] = 8, data[1] = 249, data[2] = 4609, data[3] = 1, data[4] = 4612, data[5] = 0, data[6] = 4613, data[7] = 0, data[8] = 14092;
         break;
       case VentilationCommand.SetBoost:
+        this.log.info('set ventilation mode to boost');
         data = new Uint16Array(7);
         data[0] = 6, data[1] = 249, data[2] = 4612, data[3] = 30, data[4] = 4613, data[5] = 0, data[6] = 9510;
         break;
@@ -82,18 +85,18 @@ export class HeliosVentilation {
   }
 
   private async connect(): Promise<WebSocket> {
-    this.log.info('Connecting to: ws://%s', this.heliosHost, this.heliosPort);
+    this.log.debug('Connecting to: ws://%s', this.heliosHost, this.heliosPort);
     const ws = new WebSocket('ws://' + this.heliosHost + ':' + this.heliosPort + '/');
 
     ws.on('close', (data) => {
-      this.log.info('connection closed');
+      this.log.debug('connection closed');
     });
     ws.on('error', (data) => {
-      this.log.info('connection error %s', data);
+      this.log.error('connection error %s', data);
       this.reject('connection error');
     });
     ws.on('open', () => {
-      this.log.info('connection open');
+      this.log.debug('connection open');
       this.resolve({
         message: 'OPENED',
       });
