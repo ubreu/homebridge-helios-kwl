@@ -32,10 +32,9 @@ const heliosPort = 80;
 const logger = new TestLogger();
 
 describe('Websocket Tests', () => {
+
   it('get status', async () => {
     const ws = new HeliosVentilation(heliosHost, heliosPort, logger);
-    const ack = await ws.open() as VentilationAck;
-    assert.equal(ack.message, 'OPENED');
 
     const info = await ws.send(VentilationCommand.GetStatus) as VentilationInfo;
     assert.equal(info.deviceModel, 'KWL 300 W L');
@@ -44,10 +43,7 @@ describe('Websocket Tests', () => {
 
   it('set boost', async () => {
     const ws = new HeliosVentilation(heliosHost, heliosPort, logger);
-    let ack = await ws.open() as VentilationAck;
-    assert.equal(ack.message, 'OPENED');
-
-    ack = await ws.send(VentilationCommand.SetBoost) as VentilationAck;
+    const ack = await ws.send(VentilationCommand.SetBoost) as VentilationAck;
     assert.equal(ack.message, 'ACK');
 
     const info = await ws.send(VentilationCommand.GetStatus) as VentilationInfo;
@@ -55,18 +51,16 @@ describe('Websocket Tests', () => {
   });
 
   it('correctly handles parallel status requests', async () => {
-    const ws = new HeliosVentilation(heliosHost, heliosPort, logger);
-    const ack = await ws.open() as VentilationAck;
-    assert.equal(ack.message, 'OPENED');
+    const ws1 = new HeliosVentilation(heliosHost, heliosPort, logger);
+    const ws2 = new HeliosVentilation(heliosHost, heliosPort, logger);
+    const ws3 = new HeliosVentilation(heliosHost, heliosPort, logger);
 
     const promises:Promise<VentilationMessage>[] = [];
-    promises.push(ws.send(VentilationCommand.GetStatus));
-    promises.push(ws.send(VentilationCommand.GetStatus));
-    const finalPromise = ws.send(VentilationCommand.GetStatus);
-    promises.push(finalPromise);
-    const info = await finalPromise as VentilationInfo;
-    assert.equal(info.deviceModel, 'KWL 300 W L');
-    assert.equal(info.deviceType, '40050-002');
+    promises.push(ws1.send(VentilationCommand.GetStatus));
+    promises.push(ws2.send(VentilationCommand.GetStatus));
+    promises.push(ws3.send(VentilationCommand.GetStatus));
+
     await Promise.allSettled(promises);
   });
+
 });

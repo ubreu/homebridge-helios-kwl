@@ -3,7 +3,7 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { HeliosVentilationPlatformAccessory } from './platformAccessory';
 import { HeliosVentilationPlatformConfig } from './config';
-import { HeliosVentilation, VentilationAck, VentilationCommand, VentilationInfo } from './helios/ventilation';
+import { HeliosVentilation, VentilationCommand, VentilationInfo } from './helios/ventilation';
 
 /**
  * HomebridgePlatform
@@ -50,10 +50,9 @@ export class HeliosVentilationPlatform implements DynamicPlatformPlugin {
 
   async addAccessory(config: HeliosVentilationPlatformConfig) {
     this.hv = new HeliosVentilation(config.heliosHost, config.heliosPort, this.log);
-    await this.hv.open() as VentilationAck;
+    const info = await this.hv.send(VentilationCommand.GetStatus) as VentilationInfo;
     this.log.info('Connected to:', config.heliosHost);
 
-    const info = await this.hv.send(VentilationCommand.GetStatus) as VentilationInfo;
     const uuid = this.api.hap.uuid.generate('homebridge:helios:ventilation:' + info.serialNumber);
 
     const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
@@ -62,8 +61,9 @@ export class HeliosVentilationPlatform implements DynamicPlatformPlugin {
       this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
 
       // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-      // existingAccessory.context.device = device;
-      // this.api.updatePlatformAccessories([existingAccessory]);
+      existingAccessory.context.device = info;
+      this.api.updatePlatformAccessories([existingAccessory]);
+
       // create the accessory handler for the restored accessory
       // this is imported from `platformAccessory.ts`
       new HeliosVentilationPlatformAccessory(this, existingAccessory);
