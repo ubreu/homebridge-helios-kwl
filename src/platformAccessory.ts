@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
+import { Service, PlatformAccessory } from 'homebridge';
 
 import { HeliosVentilationPlatform } from './platform';
 import { VentilationCommand, VentilationInfo, VentilationStatus } from './helios/ventilation';
@@ -12,7 +12,7 @@ export class HeliosVentilationPlatformAccessory {
   private service: Service;
 
   private state = {
-    active: false,
+    active: this.platform.Characteristic.Active.ACTIVE,
     speed: 0,
   };
 
@@ -38,7 +38,6 @@ export class HeliosVentilationPlatformAccessory {
     // each service must implement at-minimum the "required characteristics" for the given service type
     // see https://developers.homebridge.io/#/service/Fanv2
     this.service.getCharacteristic(this.platform.Characteristic.Active)
-      .onGet(this.getActive.bind(this))
       .onSet(this.setActive.bind(this));
 
     this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed)
@@ -47,40 +46,37 @@ export class HeliosVentilationPlatformAccessory {
         maxValue: 100,
         minStep: 50,
       })
-      .onGet(this.getRotationSpeed.bind(this))
       .onSet(this.setRotationSpeed.bind(this));
+
+    /**
+     * Updating characteristics values asynchronously.
+     */
+    setInterval(() => {
+      this.platform.hv.send(VentilationCommand.GetStatus).then(message => {
+        const info = message as VentilationInfo;
+        this.platform.log.debug('updating characteristic with current device info', info);
+        const active = this.isActive(info);
+        const speed = this.getRotationSpeed(info);
+        this.platform.log.debug('active characteristic: %s', active);
+        this.platform.log.debug('rotation speed characteristic: %d', speed);
+
+        this.service.updateCharacteristic(this.platform.Characteristic.Active, active);
+        this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, speed);
+
+        return this.isActive(info);
+      }, error => {
+        this.platform.log.error('failed to update characteristic with the current status', error);
+      });
+    }, 15000);
+
   }
 
-  async getActive(): Promise<CharacteristicValue> {
-    this.platform.log.debug('getActive');
-    return await this.platform.hv.send(VentilationCommand.GetStatus).then(message => {
-      const info = message as VentilationInfo;
-      this.platform.log.debug('device info:', info);
-      return this.isActive(info);
-    }, error => {
-      this.platform.log.error('an error occured', error);
-      return this.platform.Characteristic.Active.INACTIVE;
-    });
-  }
-
-  setActive(value) {
+  async setActive(value) {
     this.platform.log.debug('setActive: ' + value);
     this.platform.hv.send(value ? VentilationCommand.SetHome: VentilationCommand.SetAway);
   }
 
-  async getRotationSpeed(): Promise<CharacteristicValue> {
-    this.platform.log.debug('getRotationSpeed');
-    return await this.platform.hv.send(VentilationCommand.GetStatus).then(message => {
-      const info = message as VentilationInfo;
-      this.platform.log.debug('device info:', info);
-      return this.determineRotationSpeed(info);
-    }, error => {
-      this.platform.log.error('an error occured', error);
-      return 0;
-    });
-  }
-
-  setRotationSpeed(value) {
+  async setRotationSpeed(value) {
     this.platform.log.debug('setRotationSpeed' + value);
     this.platform.hv.send(value > 50 ? VentilationCommand.SetBoost : VentilationCommand.SetHome);
   }
@@ -92,7 +88,7 @@ export class HeliosVentilationPlatformAccessory {
     return this.platform.Characteristic.Active.INACTIVE;
   }
 
-  private determineRotationSpeed(info: VentilationInfo) {
+  private getRotationSpeed(info: VentilationInfo) {
     return info.deviceState === VentilationStatus.Boost ? 100 : info.deviceState === VentilationStatus.Home ? 50 : 0;
   }
 }

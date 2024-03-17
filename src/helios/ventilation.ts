@@ -148,7 +148,8 @@ export class HeliosVentilation {
         if (this.ws.readyState === WebSocket.CLOSED) {
           this.log.info('websocket closed, reconnecting');
           this.ws = this.connect();
-          const p= this.open().then(_ => {
+          this.log.info('websocket closed, reconnecting');
+          this.open().then(_ => {
             this.log.info('websocket reconnect successful, sending data');
             this.ws.send(data.buffer);
           });
