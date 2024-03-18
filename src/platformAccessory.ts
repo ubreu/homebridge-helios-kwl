@@ -59,6 +59,8 @@ export class HeliosVentilationPlatformAccessory {
         const speed = this.getRotationSpeed(info);
         this.platform.log.debug('active characteristic: %s', active);
         this.platform.log.debug('rotation speed characteristic: %d', speed);
+        this.state.active = active;
+        this.state.speed = speed;
 
         this.service.updateCharacteristic(this.platform.Characteristic.Active, active);
         this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, speed);
@@ -73,12 +75,16 @@ export class HeliosVentilationPlatformAccessory {
 
   async setActive(value) {
     this.platform.log.debug('setActive: ' + value);
-    this.platform.hv.send(value ? VentilationCommand.SetHome: VentilationCommand.SetAway);
+    if (value !== this.state.active) {
+      this.platform.hv.send(value ? VentilationCommand.SetHome: VentilationCommand.SetAway);
+    }
   }
 
   async setRotationSpeed(value) {
-    this.platform.log.debug('setRotationSpeed' + value);
-    this.platform.hv.send(value > 50 ? VentilationCommand.SetBoost : VentilationCommand.SetHome);
+    this.platform.log.debug('setRotationSpeed: ' + value);
+    if (value !== this.state.speed) {
+      this.platform.hv.send(value > 50 ? VentilationCommand.SetBoost : VentilationCommand.SetHome);
+    }
   }
 
   private isActive(info: VentilationInfo) {

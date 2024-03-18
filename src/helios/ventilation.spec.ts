@@ -63,4 +63,17 @@ describe('Websocket Tests', () => {
     await Promise.allSettled(promises);
   });
 
+  it('correctly handles parallel set status requests', async () => {
+    const ws1 = new HeliosVentilation(heliosHost, heliosPort, logger);
+    const ws2 = new HeliosVentilation(heliosHost, heliosPort, logger);
+    const ws3 = new HeliosVentilation(heliosHost, heliosPort, logger);
+
+    const promises:Promise<VentilationMessage>[] = [];
+    promises.push(ws1.send(VentilationCommand.SetAway));
+    promises.push(ws2.send(VentilationCommand.SetBoost));
+    promises.push(ws3.send(VentilationCommand.SetHome));
+
+    await Promise.allSettled(promises);
+  });
+
 });
