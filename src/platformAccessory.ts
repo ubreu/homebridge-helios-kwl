@@ -76,6 +76,7 @@ export class HeliosVentilationPlatformAccessory {
   async setActive(value) {
     this.platform.log.debug('setActive: ' + value);
     if (value !== this.state.active) {
+      this.state.active = value;
       this.platform.hv.send(value ? VentilationCommand.SetHome: VentilationCommand.SetAway);
     }
   }
@@ -83,6 +84,7 @@ export class HeliosVentilationPlatformAccessory {
   async setRotationSpeed(value) {
     this.platform.log.debug('setRotationSpeed: ' + value);
     if (value !== this.state.speed) {
+      this.state.speed = value;
       this.platform.hv.send(value > 50 ? VentilationCommand.SetBoost : VentilationCommand.SetHome);
     }
   }
