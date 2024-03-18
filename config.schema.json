@@ -5,17 +5,23 @@
   "schema": {
     "type": "object",
     "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "@ubreu/homebridge-helios-kwl"
+      },
       "heliosHost": {
         "title": "Helios Host",
         "type": "string",
         "required": true,
+        "format": "uri",
         "default": "127.0.0.1"
       },
       "heliosPort": {
         "title": "Helios Port",
         "type": "number",
         "required": true,
-        "default": "127.0.0.1"
+        "default": 80
       }
     }
   }
