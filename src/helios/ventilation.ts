@@ -70,8 +70,10 @@ export class HeliosVentilation {
         data = new Uint16Array(4);
         data[0] = 3, data[1] = 246, data[2] = 0, data[3] = 249;
     }
-    this.log.debug('sending data of length %d', data.byteLength);
-    ws.send(data.buffer);
+    if (ws.readyState === WebSocket.OPEN) {
+      this.log.debug('sending data of length %d', data.byteLength);
+      ws.send(data.buffer);
+    }
 
     const cleanup = (message) => {
       this.log.debug('closing connection for command', command);
