@@ -49,6 +49,11 @@ export class HeliosVentilationPlatform implements DynamicPlatformPlugin {
   }
 
   async addAccessory(config: HeliosVentilationPlatformConfig) {
+    if(config.heliosHost === undefined || config.heliosPort === undefined){
+      this.log.error('heliosHost and heliosPort have to be configured.');
+      return;
+    }
+
     this.hv = new HeliosVentilation(config.heliosHost, config.heliosPort, this.log);
     const info = await this.hv.send(VentilationCommand.GetStatus) as VentilationInfo;
     this.log.info('Connected to:', config.heliosHost);
