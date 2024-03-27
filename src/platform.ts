@@ -2,7 +2,7 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { HeliosVentilationPlatformAccessory } from './platformAccessory';
-import { HeliosVentilationPlatformConfig } from './config';
+import { HeliosVentilationPlatformConfig, isNonEmptyString, isPositiveInteger } from './config';
 import { HeliosVentilation, VentilationCommand, VentilationInfo } from './helios/ventilation';
 
 /**
@@ -49,48 +49,51 @@ export class HeliosVentilationPlatform implements DynamicPlatformPlugin {
   }
 
   async addAccessory(config: HeliosVentilationPlatformConfig) {
-    if(config.heliosHost === undefined || config.heliosPort === undefined){
-      this.log.error('heliosHost and heliosPort have to be configured.');
+    if(!isNonEmptyString(config.heliosHost) || !isPositiveInteger(config.heliosPort)) {
+      this.log.error('heliosHost and heliosPort have to be configured properly.');
       return;
     }
+    try {
+      this.hv = new HeliosVentilation(config.heliosHost, config.heliosPort, this.log);
+      const info = await this.hv.send(VentilationCommand.GetStatus) as VentilationInfo;
+      this.log.info('Connected to:', config.heliosHost);
 
-    this.hv = new HeliosVentilation(config.heliosHost, config.heliosPort, this.log);
-    const info = await this.hv.send(VentilationCommand.GetStatus) as VentilationInfo;
-    this.log.info('Connected to:', config.heliosHost);
+      const uuid = this.api.hap.uuid.generate('homebridge:helios:ventilation:' + info.serialNumber);
 
-    const uuid = this.api.hap.uuid.generate('homebridge:helios:ventilation:' + info.serialNumber);
+      const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
-    const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+      if (existingAccessory) {
+        this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
 
-    if (existingAccessory) {
-      this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
+        existingAccessory.context.info = info;
+        this.api.updatePlatformAccessories([existingAccessory]);
 
-      // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. eg.:
-      existingAccessory.context.info = info;
-      this.api.updatePlatformAccessories([existingAccessory]);
+        // create the accessory handler for the restored accessory
+        // this is imported from `platformAccessory.ts`
+        new HeliosVentilationPlatformAccessory(this, existingAccessory);
 
-      // create the accessory handler for the restored accessory
-      // this is imported from `platformAccessory.ts`
-      new HeliosVentilationPlatformAccessory(this, existingAccessory);
+        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
+        // remove platform accessories when no longer present
+        // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
+        // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
+      } else {
+        this.log.info('Adding new accessory:', info.deviceModel, info.deviceType, info.serialNumber);
+        const accessory = new this.api.platformAccessory(info.deviceModel, uuid);
 
-      // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, eg.:
-      // remove platform accessories when no longer present
-      // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-      // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
-    } else {
-      this.log.info('Adding new accessory:', info.deviceModel, info.deviceType, info.serialNumber);
-      const accessory = new this.api.platformAccessory(info.deviceModel, uuid);
+        // store a copy of the device object in the `accessory.context`
+        // the `context` property can be used to store any data about the accessory you may need
+        accessory.context.info = info;
 
-      // store a copy of the device object in the `accessory.context`
-      // the `context` property can be used to store any data about the accessory you may need
-      accessory.context.info = info;
+        // create the accessory handler for the newly create accessory
+        // this is imported from `platformAccessory.ts`
+        new HeliosVentilationPlatformAccessory(this, accessory);
 
-      // create the accessory handler for the newly create accessory
-      // this is imported from `platformAccessory.ts`
-      new HeliosVentilationPlatformAccessory(this, accessory);
-
-      // link the accessory to your platform
-      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        // link the accessory to your platform
+        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+      }
+    } catch (error) {
+      this.log.error('An error occurred while adding the accessory', error);
     }
   }
 }
