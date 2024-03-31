@@ -4,6 +4,8 @@
 
 # Homebridge Helios KWL Plugin
 
+[![verified-by-homebridge](https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=for-the-badge&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
 This is a [Homebridge](https://homebridge.io/) plugin for the [Helios KWL Easycontrols](https://www.easycontrols.net/de/) system in version >= 3.0.
 When activated the Helios KWL ventilation systemr is added as a fan accessory to HomeKit and the plugin tracks the fan status of the system.
 
