@@ -6,6 +6,7 @@ import assert from 'assert';
 
 class TestLogger implements Logger {
   prefix?: string | undefined;
+
   info(message: string, ...parameters: any[]): void {
     console.log(message, parameters);
   }
@@ -23,6 +24,10 @@ class TestLogger implements Logger {
   }
 
   log(level: LogLevel, message: string, ...parameters: any[]): void {
+    console.log(message, parameters);
+  }
+
+  success(message: string, ...parameters: any[]): void {
     console.log(message, parameters);
   }
 }
