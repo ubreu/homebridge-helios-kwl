@@ -52,23 +52,19 @@ export class HeliosVentilation {
     switch(command) {
       case VentilationCommand.SetHome:
         this.log.info('set ventilation mode to home/default');
-        data = new Uint16Array(9);
-        data[0] = 8, data[1] = 249, data[2] = 4609, data[3] = 0, data[4] = 4612, data[5] = 0, data[6] = 4613, data[7] = 0, data[8] = 14091;
+        data = new Uint16Array([8, 249, 4609, 0, 4612, 0, 4613, 0, 14091]);
         break;
       case VentilationCommand.SetAway:
         this.log.info('set ventilation mode to away');
-        data = new Uint16Array(9);
-        data[0] = 8, data[1] = 249, data[2] = 4609, data[3] = 1, data[4] = 4612, data[5] = 0, data[6] = 4613, data[7] = 0, data[8] = 14092;
+        data = new Uint16Array([8, 249, 4609, 1, 4612, 0, 4613, 0, 14092]);
         break;
       case VentilationCommand.SetBoost:
         this.log.info('set ventilation mode to boost');
-        data = new Uint16Array(7);
-        data[0] = 6, data[1] = 249, data[2] = 4612, data[3] = 30, data[4] = 4613, data[5] = 0, data[6] = 9510;
+        data = new Uint16Array([6, 249, 4612, 30, 4613, 0, 9510]);
         break;
       case VentilationCommand.GetStatus:
       default:
-        data = new Uint16Array(4);
-        data[0] = 3, data[1] = 246, data[2] = 0, data[3] = 249;
+        data = new Uint16Array([3, 246, 0, 249]);
     }
     if (ws.readyState === WebSocket.OPEN) {
       this.log.debug('sending data of length %d', data.byteLength);
@@ -90,7 +86,7 @@ export class HeliosVentilation {
     this.log.debug('Connecting to: ws://%s', this.heliosHost, this.heliosPort);
     const ws = new WebSocket('ws://' + this.heliosHost + ':' + this.heliosPort + '/');
 
-    ws.on('close', (data) => {
+    ws.on('close', () => {
       this.log.debug('connection closed');
     });
     ws.on('error', (data) => {

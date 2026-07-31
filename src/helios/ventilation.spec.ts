@@ -1,5 +1,7 @@
 import { LogLevel, Logger } from 'homebridge';
-import { HeliosVentilation, VentilationAck, VentilationCommand, VentilationInfo, VentilationMessage, VentilationStatus } from './ventilation';
+import {
+  HeliosVentilation, VentilationAck, VentilationCommand, VentilationInfo, VentilationMessage, VentilationStatus,
+} from './ventilation';
 
 import assert from 'assert';
 
@@ -7,27 +9,27 @@ import assert from 'assert';
 class TestLogger implements Logger {
   prefix?: string | undefined;
 
-  info(message: string, ...parameters: any[]): void {
+  info(message: string, ...parameters: unknown[]): void {
     console.log(message, parameters);
   }
 
-  warn(message: string, ...parameters: any[]): void {
+  warn(message: string, ...parameters: unknown[]): void {
     console.log(message, parameters);
   }
 
-  error(message: string, ...parameters: any[]): void {
+  error(message: string, ...parameters: unknown[]): void {
     console.log(message, parameters);
   }
 
-  debug(message: string, ...parameters: any[]): void {
+  debug(message: string, ...parameters: unknown[]): void {
     console.log(message, parameters);
   }
 
-  log(level: LogLevel, message: string, ...parameters: any[]): void {
+  log(level: LogLevel, message: string, ...parameters: unknown[]): void {
     console.log(message, parameters);
   }
 
-  success(message: string, ...parameters: any[]): void {
+  success(message: string, ...parameters: unknown[]): void {
     console.log(message, parameters);
   }
 }
