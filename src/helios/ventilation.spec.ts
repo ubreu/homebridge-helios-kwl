@@ -57,6 +57,15 @@ describe('Websocket Tests', () => {
     assert.equal(info.deviceState, VentilationStatus.Boost);
   });
 
+  it('set fireplace', async () => {
+    const ws = new HeliosVentilation(heliosHost, heliosPort, logger);
+    const ack = await ws.send(VentilationCommand.SetFireplace) as VentilationAck;
+    assert.equal(ack.message, 'ACK');
+
+    const info = await ws.send(VentilationCommand.GetStatus) as VentilationInfo;
+    assert.equal(info.deviceState, VentilationStatus.Fireplace);
+  });
+
   it('correctly handles parallel status requests', async () => {
     const ws1 = new HeliosVentilation(heliosHost, heliosPort, logger);
     const ws2 = new HeliosVentilation(heliosHost, heliosPort, logger);
