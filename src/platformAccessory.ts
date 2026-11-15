@@ -1,7 +1,14 @@
-import { Service, PlatformAccessory } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
 import { HeliosVentilationPlatform } from './platform';
 import { VentilationCommand, VentilationInfo, VentilationStatus } from './helios/ventilation';
+import { isActive, isFireplace, rotationSpeed } from './helios/status';
+
+interface ModeSwitch {
+  service: Service;
+  isOn: (state: VentilationStatus) => boolean;
+  on: boolean;
+}
 
 /**
  * Platform Accessory
@@ -10,6 +17,8 @@ import { VentilationCommand, VentilationInfo, VentilationStatus } from './helios
  */
 export class HeliosVentilationPlatformAccessory {
   private service: Service;
+
+  private modeSwitches: ModeSwitch[] = [];
 
   private state = {
     active: this.platform.Characteristic.Active.ACTIVE,
@@ -48,6 +57,8 @@ export class HeliosVentilationPlatformAccessory {
       })
       .onSet(this.setRotationSpeed.bind(this));
 
+    this.addModeSwitch('fireplace', 'Fireplace', VentilationCommand.SetFireplace, isFireplace);
+
     /**
      * Updating characteristics values asynchronously.
      */
@@ -55,8 +66,8 @@ export class HeliosVentilationPlatformAccessory {
       this.platform.hv.send(VentilationCommand.GetStatus).then(message => {
         const info = message as VentilationInfo;
         this.platform.log.debug('updating characteristic with current device info', info);
-        const active = this.isActive(info);
-        const speed = this.getRotationSpeed(info);
+        const active = this.toActive(info.deviceState);
+        const speed = rotationSpeed(info.deviceState);
         this.platform.log.debug('active characteristic: %s', active);
         this.platform.log.debug('rotation speed characteristic: %d', speed);
         this.state.active = active;
@@ -65,7 +76,10 @@ export class HeliosVentilationPlatformAccessory {
         this.service.updateCharacteristic(this.platform.Characteristic.Active, active);
         this.service.updateCharacteristic(this.platform.Characteristic.RotationSpeed, speed);
 
-        return this.isActive(info);
+        for (const modeSwitch of this.modeSwitches) {
+          modeSwitch.on = modeSwitch.isOn(info.deviceState);
+          modeSwitch.service.updateCharacteristic(this.platform.Characteristic.On, modeSwitch.on);
+        }
       }, error => {
         this.platform.log.error('failed to update characteristic with the current status', error);
       });
@@ -89,14 +103,41 @@ export class HeliosVentilationPlatformAccessory {
     }
   }
 
-  private isActive(info: VentilationInfo) {
-    if(info.deviceState === VentilationStatus.Home || info.deviceState === VentilationStatus.Boost) {
-      return this.platform.Characteristic.Active.ACTIVE;
-    }
-    return this.platform.Characteristic.Active.INACTIVE;
+  /**
+   * Adds (or restores from cache) a switch that starts a ventilation profile when turned on
+   * and returns to Home when turned off. Its state is refreshed by the status poll.
+   */
+  private addModeSwitch(subtype: string, name: string, onCommand: VentilationCommand, isOn: (state: VentilationStatus) => boolean) {
+    const service = this.accessory.getServiceById(this.platform.Service.Switch, subtype)
+      || this.accessory.addService(this.platform.Service.Switch, name, subtype);
+    service.setCharacteristic(this.platform.Characteristic.Name, name);
+
+    const modeSwitch: ModeSwitch = { service, isOn, on: false };
+    this.modeSwitches.push(modeSwitch);
+
+    service.getCharacteristic(this.platform.Characteristic.On)
+      .onSet(async (value: CharacteristicValue) => {
+        const on = value as boolean;
+        this.platform.log.debug('set %s switch: %s', name, on);
+        if (on === modeSwitch.on) {
+          return;
+        }
+        // profiles are exclusive: turning one switch on turns the others off
+        for (const other of this.modeSwitches) {
+          other.on = false;
+          if (other !== modeSwitch) {
+            other.service.updateCharacteristic(this.platform.Characteristic.On, false);
+          }
+        }
+        modeSwitch.on = on;
+        this.state.active = this.platform.Characteristic.Active.ACTIVE;
+        this.platform.hv.send(on ? onCommand : VentilationCommand.SetHome).catch(error => {
+          this.platform.log.error('failed to set %s mode', name, error);
+        });
+      });
   }
 
-  private getRotationSpeed(info: VentilationInfo) {
-    return info.deviceState === VentilationStatus.Boost ? 100 : info.deviceState === VentilationStatus.Home ? 50 : 0;
+  private toActive(state: VentilationStatus) {
+    return isActive(state) ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
   }
 }
