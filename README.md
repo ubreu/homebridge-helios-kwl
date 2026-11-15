@@ -13,6 +13,20 @@ When activated the Helios KWL ventilation systemr is added as a fan accessory to
 
 The required configuration parameters are the Helio host (e.g. 192.168.1.10) and the websocket port (default is 80).
 
+## HomeKit controls
+
+The ventilation appears as one accessory with a fan and two switches:
+
+| Control | Ventilation mode |
+|---|---|
+| Fan on / off | Home / Away |
+| Fan speed slider (long-press the fan tile): 50 % / 100 % | Home / Boost |
+| **Boost** switch on | Boost: high airflow (speed set in Easycontrols), ends automatically after 30 minutes |
+| **Fireplace** switch on | Fireplace ("Kaminfunktion"): more supply than exhaust air, so a stove draws properly; ends automatically after 15 minutes |
+| Boost or Fireplace switch off | Home |
+
+The plugin polls the unit every 15 seconds, so changes made in the Easycontrols app or on the unit show up in HomeKit within that time.
+
 ## Development
 
 ### Setup Development Environment

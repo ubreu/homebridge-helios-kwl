@@ -2,7 +2,7 @@ import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
 import { HeliosVentilationPlatform } from './platform';
 import { VentilationCommand, VentilationInfo, VentilationStatus } from './helios/ventilation';
-import { isActive, isFireplace, rotationSpeed } from './helios/status';
+import { isActive, isBoost, isFireplace, rotationSpeed } from './helios/status';
 
 interface ModeSwitch {
   service: Service;
@@ -58,6 +58,7 @@ export class HeliosVentilationPlatformAccessory {
       .onSet(this.setRotationSpeed.bind(this));
 
     this.addModeSwitch('fireplace', 'Fireplace', VentilationCommand.SetFireplace, isFireplace);
+    this.addModeSwitch('boost', 'Boost', VentilationCommand.SetBoost, isBoost);
 
     /**
      * Updating characteristics values asynchronously.
