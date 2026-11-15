@@ -17,11 +17,3 @@ export function rotationSpeed(state: VentilationStatus): number {
       return 0;
   }
 }
-
-export function isFireplace(state: VentilationStatus): boolean {
-  return state === VentilationStatus.Fireplace;
-}
-
-export function isBoost(state: VentilationStatus): boolean {
-  return state === VentilationStatus.Boost;
-}
