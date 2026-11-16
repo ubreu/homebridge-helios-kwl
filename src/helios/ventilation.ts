@@ -3,7 +3,7 @@ import { Logger } from 'homebridge';
 import { DeviceMap } from './deviceMap';
 
 export enum VentilationCommand {
-    GetStatus, SetHome, SetAway, SetBoost
+    GetStatus, SetHome, SetAway, SetBoost, SetFireplace
 }
 
 export enum VentilationStatus {
@@ -22,6 +22,29 @@ export interface VentilationInfo {
 }
 
 export type VentilationMessage = VentilationInfo | VentilationAck;
+
+/*
+* Encodes a command as websocket payload (16-bit words). Set commands write
+* register/value pairs; the last word is the sum of all preceding words.
+* Registers: 4609 A_CYC_STATE (0 home, 1 away), 4612 A_CYC_BOOST_TIMER,
+* 4613 A_CYC_FIREPLACE_TIMER (timer values in minutes).
+* Determined by debugging bundle.js, line 3853 ('Message is received...').
+*/
+export function encodeCommand(command: VentilationCommand): Uint16Array {
+  switch(command) {
+    case VentilationCommand.SetHome:
+      return new Uint16Array([8, 249, 4609, 0, 4612, 0, 4613, 0, 14091]);
+    case VentilationCommand.SetAway:
+      return new Uint16Array([8, 249, 4609, 1, 4612, 0, 4613, 0, 14092]);
+    case VentilationCommand.SetBoost:
+      return new Uint16Array([6, 249, 4612, 30, 4613, 0, 9510]);
+    case VentilationCommand.SetFireplace:
+      return new Uint16Array([6, 249, 4612, 0, 4613, 15, 9495]);
+    case VentilationCommand.GetStatus:
+    default:
+      return new Uint16Array([3, 246, 0, 249]);
+  }
+}
 
 /*
 * Original source for reverse engineered message protocol for fetching ventilation status: https://github.com/sanchosk/helios2mqtt
@@ -47,25 +70,21 @@ export class HeliosVentilation {
   async send(command: VentilationCommand): Promise<VentilationMessage> {
     const ws = await this.connect();
 
-    let data;
-    // determined by debugging bundle.js, line 3853 ('Message is received...')
     switch(command) {
       case VentilationCommand.SetHome:
         this.log.info('set ventilation mode to home/default');
-        data = new Uint16Array([8, 249, 4609, 0, 4612, 0, 4613, 0, 14091]);
         break;
       case VentilationCommand.SetAway:
         this.log.info('set ventilation mode to away');
-        data = new Uint16Array([8, 249, 4609, 1, 4612, 0, 4613, 0, 14092]);
         break;
       case VentilationCommand.SetBoost:
         this.log.info('set ventilation mode to boost');
-        data = new Uint16Array([6, 249, 4612, 30, 4613, 0, 9510]);
         break;
-      case VentilationCommand.GetStatus:
-      default:
-        data = new Uint16Array([3, 246, 0, 249]);
+      case VentilationCommand.SetFireplace:
+        this.log.info('set ventilation mode to fireplace');
+        break;
     }
+    const data = encodeCommand(command);
     if (ws.readyState === WebSocket.OPEN) {
       this.log.debug('sending data of length %d', data.byteLength);
       ws.send(data.buffer);
